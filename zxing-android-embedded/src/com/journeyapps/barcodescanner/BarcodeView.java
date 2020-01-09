@@ -194,6 +194,13 @@ public class BarcodeView extends CameraPreview {
             decoderThread = null;
         }
     }
+
+    /**
+    *   재시작 스레드
+    */
+    public void start(){
+        startDecoderThread();
+    }
     /**
      * Stops the live preview and decoding.
      *

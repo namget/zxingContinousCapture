@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
             //이미지를 받을지의 대한 여부
             setBarcodeImageEnabled(true)
             setOrientationLocked(true)
+            setContinuous(true)
             // 삐소리나는 바코드
             setBeepEnabled(false)
             //카메라 방향

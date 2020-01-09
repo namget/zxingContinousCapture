@@ -17,6 +17,8 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -39,10 +41,10 @@ import java.util.Map;
  * Manages barcode scanning for a CaptureActivity. This class may be used to have a custom Activity
  * (e.g. with a customized look and feel, or a different superclass), but not the barcode scanning
  * process itself.
- *
+ * <p>
  * This is intended for an Activity that is dedicated to capturing a single barcode and returning
  * it via setResult(). For other use cases, use DefaultBarcodeScannerView or BarcodeView directly.
- *
+ * <p>
  * The following is managed by this class:
  * - Orientation lock
  * - InactivityTimer
@@ -58,6 +60,9 @@ public class CaptureManager {
 
     private Activity activity;
     private DecoratedBarcodeView barcodeView;
+    private Button continuousButton;
+    private TextView barcodeTextView;
+
     private int orientationLock = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     private static final String SAVED_ORIENTATION_LOCK = "SAVED_ORIENTATION_LOCK";
     private boolean returnBarcodeImagePath = false;
@@ -74,21 +79,22 @@ public class CaptureManager {
     private boolean finishWhenClosed = false;
     private boolean isContinuousMode = false;
     private List<BarcodeResult> barcodeResults = new ArrayList<>();
-    private String beforeBarcodeScan;
+    private StringBuilder barcodeStringBuilder = new StringBuilder(200);
 
     private BarcodeCallback callback = new BarcodeCallback() {
         @Override
         public void barcodeResult(final BarcodeResult result) {
-            if(result.getText() != null){
-                beforeBarcodeScan = result.getText();
+            if (result.getText() != null) {
+                barcodeStringBuilder.append(result.getText());
+                barcodeStringBuilder.append(", ");
+                barcodeTextView.setText(barcodeStringBuilder.toString());
+                barcodeResults.add(result);
             }
-
-//            if(beforeBarcodeScan != null && )
-
-//            barcodeView.pause();
+            barcodeView.pause();
             beepManager.playBeepSoundAndVibrate();
             Log.e("barcodeResult", result.getText());
-//            handler.post(() -> returnResult(result));
+            if (!isContinuousMode)
+                handler.post(() -> returnResult(result));
         }
 
         @Override
@@ -129,25 +135,29 @@ public class CaptureManager {
         }
     };
 
-    public CaptureManager(Activity activity, DecoratedBarcodeView barcodeView) {
+    public CaptureManager(Activity activity, DecoratedBarcodeView barcodeView, Button continuousButton, TextView barcodeTextView) {
         this.activity = activity;
         this.barcodeView = barcodeView;
+        this.continuousButton = continuousButton;
+        this.barcodeTextView = barcodeTextView;
+
         barcodeView.getBarcodeView().addStateListener(stateListener);
-
         handler = new Handler();
-
         inactivityTimer = new InactivityTimer(activity, () -> {
             Log.d(TAG, "Finishing due to inactivity");
             finish();
         });
-
         beepManager = new BeepManager(activity);
+
+        continuousButton.setOnClickListener(v -> {
+            barcodeView.resume();
+        });
     }
 
     /**
      * Perform initialization, according to preferences set in the intent.
      *
-     * @param intent the intent containing the scanning preferences
+     * @param intent             the intent containing the scanning preferences
      * @param savedInstanceState saved state, containing orientation lock
      */
     public void initializeFromIntent(Intent intent, Bundle savedInstanceState) {
@@ -191,7 +201,7 @@ public class CaptureManager {
                 returnBarcodeImagePath = true;
             }
 
-            if(intent.hasExtra(Intents.Scan.CONTINUOUS_MODE)){
+            if (intent.hasExtra(Intents.Scan.CONTINUOUS_MODE)) {
                 isContinuousMode = true;
             }
         }
@@ -236,9 +246,9 @@ public class CaptureManager {
      */
     public void decode() {
 
-        if(isContinuousMode){
+        if (isContinuousMode) {
             barcodeView.decodeContinuous(callback);
-        }else {
+        } else {
             barcodeView.decodeSingle(callback);
         }
     }
@@ -272,11 +282,12 @@ public class CaptureManager {
 
     /**
      * Call from Activity#onRequestPermissionsResult
-     * @param requestCode The request code passed in {@link androidx.core.app.ActivityCompat#requestPermissions(Activity, String[], int)}.
-     * @param permissions The requested permissions.
+     *
+     * @param requestCode  The request code passed in {@link androidx.core.app.ActivityCompat#requestPermissions(Activity, String[], int)}.
+     * @param permissions  The requested permissions.
      * @param grantResults The grant results for the corresponding permissions
-     *     which is either {@link android.content.pm.PackageManager#PERMISSION_GRANTED}
-     *     or {@link android.content.pm.PackageManager#PERMISSION_DENIED}. Never null.
+     *                     which is either {@link android.content.pm.PackageManager#PERMISSION_GRANTED}
+     *                     or {@link android.content.pm.PackageManager#PERMISSION_DENIED}. Never null.
      */
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         if (requestCode == cameraPermissionReqCode) {
@@ -323,7 +334,7 @@ public class CaptureManager {
     /**
      * Create a intent to return as the Activity result.
      *
-     * @param rawResult the BarcodeResult, must not be null.
+     * @param rawResult        the BarcodeResult, must not be null.
      * @param barcodeImagePath a path to an exported file of the Barcode Image, can be null.
      * @return the Intent
      */

@@ -209,6 +209,7 @@ public class DecoratedBarcodeView extends FrameLayout {
         barcodeView.resume();
     }
 
+
     public BarcodeView getBarcodeView() {
         return findViewById(R.id.zxing_barcode_surface);
     }

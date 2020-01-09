@@ -3,6 +3,8 @@ package com.journeyapps.barcodescanner;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -14,6 +16,8 @@ import com.google.zxing.client.android.R;
 public class CaptureActivity extends Activity {
     private CaptureManager capture;
     private DecoratedBarcodeView barcodeScannerView;
+    private Button retryButton;
+    private TextView barcodeTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,7 +25,10 @@ public class CaptureActivity extends Activity {
 
         barcodeScannerView = initializeContent();
 
-        capture = new CaptureManager(this, barcodeScannerView);
+        retryButton = findViewById(R.id.btnReady);
+        barcodeTextView = findViewById(R.id.txtBarcode);
+
+        capture = new CaptureManager(this, barcodeScannerView, retryButton, barcodeTextView);
         capture.initializeFromIntent(getIntent(), savedInstanceState);
         /**
          * decode 는 decodeSingle이라는 메소드를 호출
@@ -36,7 +43,7 @@ public class CaptureActivity extends Activity {
      */
     protected DecoratedBarcodeView initializeContent() {
         setContentView(R.layout.zxing_capture);
-        return (DecoratedBarcodeView)findViewById(R.id.zxing_barcode_scanner);
+        return (DecoratedBarcodeView) findViewById(R.id.zxing_barcode_scanner);
     }
 
     @Override
