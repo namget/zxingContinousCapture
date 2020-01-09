@@ -1,0 +1,2 @@
+include ':app', ':zxing-android-embedded'
+rootProject.name='My Application'
